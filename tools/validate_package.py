@@ -122,14 +122,19 @@ def audit_self(path):
     if len(signature) != SELF_SIGNATURE_SIZE:
         raise ValueError("SELF signature/authinfo block is truncated")
     auth_len, signature_paid = struct.unpack_from("<QQ", signature, 0)
-    if auth_len != len(EXPECTED_AUTHINFO):
-        raise ValueError(f"SELF AUTHINFO length mismatch: {auth_len}")
+    if auth_len not in (0, len(EXPECTED_AUTHINFO)):
+        raise ValueError(f"SELF AUTHINFO length is neither empty nor the configured length: {auth_len}")
     if signature_paid != EXPECTED_PAID:
         raise ValueError(f"SELF AUTHINFO PAID mismatch: 0x{signature_paid:016x}")
-    expected_signature = struct.pack("<QQ", len(EXPECTED_AUTHINFO), EXPECTED_PAID) + EXPECTED_AUTHINFO[8:]
-    expected_signature = expected_signature.ljust(SELF_SIGNATURE_SIZE, b"\x00")
+
+    # The known-good BLACKOUT build invokes this same pinned create-fself
+    # version without -authinfo. In that mode an empty AUTHINFO (length 0)
+    # is expected; when configured, validate the complete known payload.
+    auth_payload = b"" if auth_len == 0 else EXPECTED_AUTHINFO[8:]
+    expected_signature = struct.pack("<QQ", auth_len, EXPECTED_PAID) + auth_payload
+    expected_signature = expected_signature.ljust(SELF_SIGNATURE_SIZE, b"\\x00")
     if signature != expected_signature:
-        raise ValueError("SELF AUTHINFO/signature payload does not match the configured OpenOrbis AUTHINFO")
+        raise ValueError("SELF AUTHINFO/signature payload does not match the selected empty/configured AUTHINFO mode")
 
     print("[OK] eboot.bin: SELF magic, header sizes, entry table and file length are coherent")
     print(f"[OK] eboot.bin: PAID=0x{paid:016x}, program type=fake, NPDRM block type={control_type}")
