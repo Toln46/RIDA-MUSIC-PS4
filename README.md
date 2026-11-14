@@ -8,7 +8,16 @@ RIDA MUSIC is an independent PS4 / GoldHEN homebrew music-player project.
 - DualShock 4 navigation: D-pad / left stick, L1/R1, Cross, Circle and Options.
 - Honest empty states: no demo tracks are presented as real music and the player does not pretend to stream.
 - Spotify catalogue integration is **blocked until an eligible Spotify Developer app can be configured**.
-- Audio streaming is not implemented yet.
+- Live Audius catalogue search through the PS4 HTTPS stack (public read-only API).
+- PS4 on-screen keyboard for artist, track and genre searches.
+- Track metadata results are displayed in the native interface.
+- Audio decoding and continuous playback are still under development; selecting a track does not yet start audio.
+
+## Audius catalogue integration
+
+RIDA MUSIC now queries the official Audius REST API directly from the PS4 using the OpenOrbis HTTPS/SSL/Net interfaces. Public read-only catalogue search does not require Premium credentials. The Search section opens the PS4 on-screen keyboard (Triangle), queries artists, titles or genres, and displays returned track titles, artists and durations. No fake results are inserted.
+
+The stream endpoint is documented by Audius, but the PS4 audio decoder/output pipeline is not connected in this commit. Selecting a result is currently a UI/catalogue selection only; it does not claim to play audio yet. The next milestone is progressive MP3 stream decoding into native AudioOut without writing the track to disk.
 
 ## Spotify access limitation
 
@@ -24,6 +33,7 @@ RIDA MUSIC will not extract Spotify audio, bypass DRM, or expose a client secret
 - L1 / R1: previous / next section
 - Circle: return to Home
 - Options: reset to Home
+- Search section: Triangle opens the PS4 keyboard; Cross selects a result
 
 ## Build
 
