@@ -429,7 +429,10 @@ int main(void) {
         }
 
         if (navigationInput && navigationCooldown == 0) {
-            if (up) {
+            if (tab == 1 && audiusCount > 0 && (up || down)) {
+                if (up) audiusSelected = (audiusSelected + audiusCount - 1) % audiusCount;
+                else audiusSelected = (audiusSelected + 1) % audiusCount;
+            } else if (up) {
                 selected = (selected + 3) % 4;
             } else if (down) {
                 selected = (selected + 1) % 4;
@@ -440,8 +443,12 @@ int main(void) {
                 tab = (tab + 1) % 4;
                 selected = 0;
             }
-
             navigationCooldown = NAV_REPEAT_DELAY;
+        }
+
+        if (tab == 1 && (pressed & ORBIS_PAD_BUTTON_TRIANGLE)) {
+            audius_open_search(user);
+            navigationCooldown = 20;
         }
 
         if (pressed & ORBIS_PAD_BUTTON_L1) {
@@ -455,7 +462,11 @@ int main(void) {
         }
 
         if (pressed & ORBIS_PAD_BUTTON_CROSS) {
-            tab = selected;
+            if (tab == 1 && audiusCount > 0) {
+                audiusState = 2;
+            } else {
+                tab = selected;
+            }
             notice = 0;
         }
 
