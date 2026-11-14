@@ -13,7 +13,7 @@ PROJDIR     := src
 INTDIR      := $(PROJDIR)/x64/Debug
 
 # Même options et bibliothèques système que BLACKOUT, qui démarre correctement.
-LIBS        := -lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSysmodule
+LIBS        := -lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSysmodule -lSceHttp -lSceSsl -lSceNet -lSceImeDialog
 EXTRAFLAGS  := -O2 -Wall
 CFILES      := $(wildcard $(PROJDIR)/*.c)
 CPPFILES    := $(wildcard $(PROJDIR)/*.cpp)
