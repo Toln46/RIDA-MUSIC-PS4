@@ -15,17 +15,10 @@ jobs:
       - name: Checkout RGS MUSIC
         uses: actions/checkout@v4
 
-      - name: Checkout OpenOrbis sample graphics helpers
-        uses: actions/checkout@v4
-        with:
-          repository: OpenOrbis/OpenOrbis-PS4-Toolchain
-          path: tools/openorbis-source
-
-      - name: Install official graphics helper sources
+      - name: Use the tested BLACKOUT Scene2D renderer
         run: |
-          cp tools/openorbis-source/samples/_common/graphics.h src/graphics.h
-          cp tools/openorbis-source/samples/_common/graphics.cpp src/graphics.cpp
-          cp tools/openorbis-source/samples/_common/log.h src/log.h
+          test -s src/graphics.h
+          test -s src/graphics.cpp
 
       - name: Set up Python
         uses: actions/setup-python@v5
