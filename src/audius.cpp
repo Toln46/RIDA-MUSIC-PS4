@@ -3,7 +3,6 @@
 #include <orbis/Http.h>
 #include <orbis/Ssl.h>
 #include <orbis/Net.h>
-#include <orbis/Sysmodule.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -11,6 +10,7 @@
 
 #define AUDIUS_NET_POOL (64 * 1024)
 #define AUDIUS_HTTP_POOL (256 * 1024)
+#define AUDIUS_SSL_POOL (256 * 1024)
 #define AUDIUS_MAX_JSON (512 * 1024)
 
 static int g_netPool = -1;
@@ -28,24 +28,18 @@ const char* audius_last_error() { return g_error; }
 bool audius_init() {
     if (g_ready) return true;
 
-    int rc = sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_NET);
-    if (rc < 0) { set_error("NET MODULE LOAD FAILED"); return false; }
-    rc = sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_SSL);
-    if (rc < 0) { set_error("SSL MODULE LOAD FAILED"); return false; }
-    rc = sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_HTTP);
-    if (rc < 0) { set_error("HTTP MODULE LOAD FAILED"); return false; }
-
-    rc = sceNetInit();
+    int rc = sceNetInit();
     if (rc < 0) { set_error("NETWORK INIT FAILED"); return false; }
 
-    g_netPool = sceNetPoolCreate("RidaAudiusNet", AUDIUS_NET_POOL, 0);
-    if (g_netPool < 0) { set_error("NETWORK POOL FAILED"); return false; }
+    // OpenOrbis exposes these initializers as no-argument SDK stubs.
+    sceNetPoolCreate();
+    g_netPool = 1;
 
-    g_ssl = sceSslInit(SSL_POOLSIZE);
+    g_ssl = sceSslInit(AUDIUS_SSL_POOL);
     if (g_ssl < 0) { set_error("SSL INIT FAILED"); return false; }
 
-    g_http = sceHttpInit(g_netPool, g_ssl, AUDIUS_HTTP_POOL);
-    if (g_http < 0) { set_error("HTTP INIT FAILED"); return false; }
+    sceHttpInit();
+    g_http = 1;
 
     g_ready = true;
     set_error("READY");
@@ -55,7 +49,7 @@ bool audius_init() {
 static bool http_get(const char* url, std::string& body) {
     if (!audius_init()) return false;
 
-    int tpl = sceHttpCreateTemplate(g_http, "RGS-MUSIC-PS4/0.04", ORBIS_HTTP_VERSION_1_1, 1);
+    int tpl = sceHttpCreateTemplate(g_http, "RGS-MUSIC-PS4/0.04", 1, 1);
     if (tpl < 0) { set_error("HTTP TEMPLATE FAILED"); return false; }
     sceHttpSetConnectTimeOut(tpl, 12000000);
     sceHttpSetSendTimeOut(tpl, 12000000);
@@ -68,9 +62,9 @@ static bool http_get(const char* url, std::string& body) {
         return false;
     }
 
-    int req = sceHttpCreateRequestWithURL(conn, ORBIS_METHOD_GET, url, 0);
+    int req = sceHttpCreateRequestWithURL(conn, 0, url, 0);
     if (req < 0) {
-        sceHttpDeleteConnection(conn);
+        sceHttpDeleteConnection();
         sceHttpDeleteTemplate(tpl);
         set_error("HTTP REQUEST FAILED");
         return false;
