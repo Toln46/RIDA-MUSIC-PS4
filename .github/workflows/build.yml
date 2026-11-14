@@ -40,12 +40,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: OpenOrbis/create-fself
+          ref: f2da6229684ce320f673c06fceac9c218f621788
           path: tools/create-fself
 
       - name: Checkout OpenOrbis create-gp4
         uses: actions/checkout@v4
         with:
           repository: OpenOrbis/create-gp4
+          ref: bf8e66e9e9bdd92e41e1697893bc8098a151fa24
           path: tools/create-gp4
 
       - name: Build OpenOrbis helper tools
@@ -88,6 +90,7 @@ jobs:
               cp "$RIGHT_SPRX" sce_sys/about/right.sprx
 
               echo "=== Build EBOOT and GP4 including sce_module PRX files ==="
+              make clean
               make
               PKG_FILE="$(find /workspace -maxdepth 1 -name "*.pkg" -print -quit)"
               test -n "$PKG_FILE"
