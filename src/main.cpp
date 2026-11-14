@@ -105,99 +105,128 @@ static void label(Scene2D* s, int x, int y, const char* t,
     text(s, x, y, t, scale, c);
 }
 
-static void draw(Scene2D* s, int tab, int selected, bool queued) {
-    rect(s, 0, 0, W, H, 12, 15, 14);
-    rect(s, 0, 0, 330, H, 17, 22, 20);
-
-    rect(s, 44, 48, 54, 54, 29, 185, 84);
-    rect(s, 59, 61, 24, 28, 12, 15, 14);
-
-    label(s, 116, 60, "RIDA MUSIC", 4, 245, 248, 246);
-    label(s, 48, 160, "YOUR LIBRARY", 2, 125, 143, 132);
-
-    const char* nav[4] = {
-        "HOME", "SEARCH", "LIBRARY", "FAVORITES"
-    };
-
-    for (int i = 0; i < 4; i++) {
-        if (tab == i) {
-            rect(s, 24, 205 + i * 76, 282, 58, 29, 65, 43);
-        }
-
-        label(s, 54, 224 + i * 76, nav[i], 3,
-              tab == i ? 70 : 220,
-              tab == i ? 220 : 226,
-              tab == i ? 125 : 222);
+static void rounded(Scene2D* s, int x, int y, int w, int h,
+                        int radius, int r, int g, int b) {
+    if (radius < 1) { rect(s,x,y,w,h,r,g,b); return; }
+    for (int row=0; row<radius; ++row) {
+        int inset = radius-row;
+        rect(s,x+inset,y+row,w-2*inset,1,r,g,b);
+        rect(s,x+inset,y+h-1-row,w-2*inset,1,r,g,b);
     }
-
-    rect(s, 24, 590, 282, 2, 50, 60, 54);
-    label(s, 48, 630, "PLAYLISTS", 2, 125, 143, 132);
-    label(s, 48, 676, "YOUR MIX", 2, 225, 230, 226);
-    label(s, 48, 722, "RECENTLY PLAYED", 2, 225, 230, 226);
-    label(s, 48, 1000, "GOLDHEN EDITION", 2, 105, 125, 113);
-
-    label(s, 390, 66, "GOOD EVENING", 2, 145, 164, 151);
-    label(s, 390, 112, tab == 0 ? "DISCOVER MUSIC" : nav[tab],
-          5, 245, 248, 246);
-
-    rect(s, 390, 205, 1460, 310, 24, 55, 39);
-    rect(s, 430, 245, 230, 230, 29, 185, 84);
-    rect(s, 486, 301, 118, 118, 12, 15, 14);
-    rect(s, 527, 342, 36, 36, 29, 185, 84);
-
-    label(s, 710, 258, "YOUR SOUND", 2, 190, 224, 199);
-    label(s, 710, 315, "MUSIC, YOUR WAY", 5, 250, 252, 250);
-    label(s, 710, 390, "A NEW HOME FOR YOUR MUSIC", 2, 210, 222, 214);
-
-    rect(s, 710, 438, 220, 48, 29, 185, 84);
-    label(s, 742, 455, "EXPLORE", 2, 12, 15, 14);
-
-    label(s, 390, 570, "QUICK PICKS", 3, 245, 248, 246);
-
-    const char* titles[4] = {
-        "MIDNIGHT DRIVE", "NEON LIGHTS",
-        "AFTER HOURS", "GREEN SIGNAL"
-    };
-
-    const char* artists[4] = {
-        "RIDA RADIO", "SYNTH WAVE",
-        "NIGHT SESSION", "FUTURE BEATS"
-    };
-
-    for (int i = 0; i < 4; i++) {
-        int x = 390 + i * 365;
-
-        rect(s, x, 630, 330, 260, 25, 31, 28);
-
-        rect(s, x + 22, 652, 286, 145,
-             i == selected ? 35 : 30,
-             i == selected ? 105 : 48,
-             i == selected ? 62 : 38);
-
-        rect(s, x + 115, 687, 100, 75, 12, 15, 14);
-        rect(s, x + 145, 710, 40, 30, 29, 185, 84);
-
-        label(s, x + 24, 820, titles[i], 2, 245, 248, 246);
-        label(s, x + 24, 855, artists[i], 2, 145, 164, 151);
-
-        if (i == selected) {
-            rect(s, x + 22, 652, 286, 5, 29, 185, 84);
-        }
-    }
-
-    rect(s, 390, 930, 1460, 2, 48, 58, 52);
-
-    label(s, 390, 965,
-          queued
-          ? "TRACK QUEUED - STREAMING NOT CONNECTED"
-          : "PREVIEW MODE - AUDIO STREAMING NOT CONNECTED",
-          2, 160, 180, 168);
-
-    label(s, 390, 1015,
-          "DPAD / STICK NAVIGATE  X SELECT  O BACK  L1/R1 SECTION",
-          2, 115, 135, 123);
+    rect(s,x,y+radius,w,h-2*radius,r,g,b);
 }
 
+static void draw(Scene2D* s, int tab, int selected, int notice) {
+    const int whiteR=244, whiteG=247, whiteB=245;
+    rect(s,0,0,W,H,12,15,14);
+    rect(s,0,0,286,H,18,23,21);
+    rect(s,286,0,2,H,37,46,42);
+
+    rounded(s,36,38,48,48,12,29,185,84);
+    rounded(s,49,49,22,26,7,12,15,14);
+    label(s,100,47,"RIDA MUSIC",3,whiteR,whiteG,whiteB);
+    label(s,38,128,"YOUR SPACE",2,120,143,132);
+
+    const char* nav[4]={"HOME","SEARCH","LIBRARY","FAVORITES"};
+    for(int i=0;i<4;i++) {
+        int y=168+i*66;
+        if(tab==i) {
+            rounded(s,20,y,246,52,12,34,69,51);
+            rounded(s,20,y+10,4,32,2,29,185,84);
+        }
+        label(s,48,y+17,nav[i],2,
+              tab==i?92:218,tab==i?229:225,tab==i?153:220);
+    }
+
+    rect(s,36,462,214,1,52,63,57);
+    label(s,38,492,"PLAYLISTS",2,125,145,133);
+    label(s,38,535,"YOUR MIX",2,177,190,181);
+    label(s,38,580,"RECENTLY PLAYED",2,177,190,181);
+    label(s,38,1012,"GOLDHEN EDITION",1,105,125,113);
+
+    label(s,338,45,"RIDA MUSIC  /  PS4",1,125,145,133);
+    const char* headings[4]={"WELCOME BACK","SEARCH MUSIC","YOUR LIBRARY","YOUR FAVORITES"};
+    const char* subtitles[4]={
+        "A CLEANER HOME FOR YOUR MUSIC",
+        "FIND ARTISTS, ALBUMS AND TRACKS",
+        "YOUR SAVED MUSIC IN ONE PLACE",
+        "THE TRACKS YOU WANT TO KEEP"
+    };
+    label(s,338,88,headings[tab],4,whiteR,whiteG,whiteB);
+    label(s,340,139,subtitles[tab],2,145,164,151);
+
+    if(tab==0) {
+        rounded(s,338,196,1538,292,24,27,62,45);
+        rounded(s,378,232,8,220,4,29,185,84);
+        label(s,420,238,"YOUR MUSIC",2,176,224,194);
+        label(s,420,286,"LISTEN YOUR WAY",5,250,252,250);
+        label(s,422,356,"DISCOVER A WORLD OF MUSIC",2,215,229,220);
+        label(s,422,399,"SEARCH, SAVE AND ENJOY YOUR COLLECTION",2,185,207,194);
+        rounded(s,420,435,218,34,15,29,185,84);
+        label(s,446,446,"EXPLORE LIBRARY",1,12,18,15);
+
+        label(s,338,538,"GETTING STARTED",2,whiteR,whiteG,whiteB);
+        rounded(s,338,584,742,224,18,29,36,33);
+        rounded(s,366,612,46,46,13,29,185,84);
+        label(s,382,627,"1",2,12,18,15);
+        label(s,430,616,"CONNECT A MUSIC SOURCE",2,whiteR,whiteG,whiteB);
+        label(s,430,655,"Spotify catalogue access is not configured.",2,164,181,170);
+        label(s,430,687,"A developer account with Premium is required.",2,164,181,170);
+        rounded(s,1110,584,766,224,18,29,36,33);
+        rounded(s,1138,612,46,46,13,48,91,72);
+        label(s,1154,627,"2",2,whiteR,whiteG,whiteB);
+        label(s,1202,616,"AUDIO PLAYER",2,whiteR,whiteG,whiteB);
+        label(s,1202,655,"The streaming engine will be connected",2,164,181,170);
+        label(s,1202,687,"to a provider that permits PS4 playback.",2,164,181,170);
+    } else if(tab==1) {
+        rounded(s,338,205,1538,102,18,29,36,33);
+        rounded(s,366,232,50,50,15,45,57,51);
+        label(s,382,247,"Q",2,220,229,223);
+        label(s,438,240,"SEARCH THE CATALOGUE",2,whiteR,whiteG,whiteB);
+        label(s,438,272,"Search will become available when API access is configured.",1,157,176,164);
+        rounded(s,338,340,1538,250,18,29,36,33);
+        label(s,382,382,"SPOTIFY ACCESS NOT AVAILABLE",3,whiteR,whiteG,whiteB);
+        label(s,382,438,"Spotify now requires an active Premium subscription",2,174,190,180);
+        label(s,382,474,"for new developer-mode API integrations.",2,174,190,180);
+        label(s,382,532,"No fake search results are shown.",2,115,206,151);
+    } else if(tab==2) {
+        rounded(s,338,205,1538,386,18,29,36,33);
+        rounded(s,900,270,112,112,32,39,79,58);
+        label(s,938,307,"M",4,29,185,84);
+        label(s,790,425,"YOUR LIBRARY IS EMPTY",3,whiteR,whiteG,whiteB);
+        label(s,735,474,"Your saved albums and tracks will appear here.",2,166,183,172);
+        label(s,848,526,"Connect a supported music source to begin.",2,166,183,172);
+    } else {
+        rounded(s,338,205,1538,386,18,29,36,33);
+        rounded(s,900,270,112,112,32,39,79,58);
+        label(s,938,307,"F",4,29,185,84);
+        label(s,805,425,"NO FAVORITES YET",3,whiteR,whiteG,whiteB);
+        label(s,760,474,"Your favorite tracks will be collected here.",2,166,183,172);
+        label(s,850,526,"Select a track to add it to favorites.",2,166,183,172);
+    }
+
+    // Bottom player: deliberately reports the real state, never fake playback.
+    rect(s,0,910,W,2,47,57,52);
+    rect(s,0,912,W,168,17,22,20);
+    rounded(s,36,942,58,58,13,38,49,44);
+    label(s,57,961,"R",3,29,185,84);
+    label(s,116,946,"NOTHING PLAYING",2,whiteR,whiteG,whiteB);
+    label(s,116,978,"Choose a supported audio stream",1,145,164,151);
+    rounded(s,830,950,42,42,14,34,44,40);
+    label(s,846,964,"|",2,180,194,186);
+    rounded(s,900,944,54,54,18,29,185,84);
+    label(s,919,962,">",3,12,18,15);
+    rounded(s,982,950,42,42,14,34,44,40);
+    label(s,997,964,"||",1,180,194,186);
+    label(s,1510,951,"READY",2,112,206,151);
+    label(s,338,1042,"UP / DOWN SELECT   LEFT / RIGHT SECTIONS   X SELECT   O BACK   L1 / R1 TABS",
+          1,119,139,128);
+
+    if(notice) {
+        rounded(s,1250,830,626,56,14,54,72,62);
+        label(s,1280,850,"MUSIC SOURCE NOT CONNECTED",2,220,233,224);
+    }
+}
 int main(void) {
     setvbuf(stdout, NULL, _IONBF, 0);
     write_status("RIDA_MUSIC_MAIN_ENTERED");
@@ -265,7 +294,7 @@ int main(void) {
     int frame = 0;
     int navigationCooldown = 0;
 
-    bool queued = false;
+    int notice = 0;
 
     write_status("RIDA_MUSIC_ENTERING_MAIN_LOOP");
     for (;;) {
@@ -307,8 +336,10 @@ int main(void) {
                 selected = (selected + 1) % 4;
             } else if (left) {
                 tab = (tab + 3) % 4;
+                selected = 0;
             } else if (right) {
                 tab = (tab + 1) % 4;
+                selected = 0;
             }
 
             navigationCooldown = NAV_REPEAT_DELAY;
@@ -316,28 +347,31 @@ int main(void) {
 
         if (pressed & ORBIS_PAD_BUTTON_L1) {
             tab = (tab + 3) % 4;
+            selected = 0;
         }
 
         if (pressed & ORBIS_PAD_BUTTON_R1) {
             tab = (tab + 1) % 4;
+            selected = 0;
         }
 
         if (pressed & ORBIS_PAD_BUTTON_CROSS) {
-            queued = !queued;
+            notice = 1;
         }
 
         if (pressed & ORBIS_PAD_BUTTON_CIRCLE) {
-            queued = false;
+            notice = 0;
+            if (tab != 0) { tab = 0; selected = 0; }
         }
 
         if (pressed & ORBIS_PAD_BUTTON_OPTIONS) {
             tab = 0;
             selected = 0;
-            queued = false;
+            notice = 0;
         }
 
         scene.SetActiveFrameBuffer(frame % 2);
-        draw(&scene, tab, selected, queued);
+        draw(&scene, tab, selected, notice);
 
         scene.SubmitFlip(frame);
         scene.FrameWait(frame);
