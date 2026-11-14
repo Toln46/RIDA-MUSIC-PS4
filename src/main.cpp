@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <cstdio>
 #include <string.h>
 #include <stdint.h>
 #include <orbis/libkernel.h>
@@ -9,6 +10,11 @@
 #include <sstream>
 
 std::stringstream debugLogStream;
+
+static void write_status(const char* message) {
+    FILE* log = std::fopen("/data/rida_music_diag.txt", "w");
+    if (log) { std::fprintf(log, "%s\\n", message); std::fclose(log); }
+}
 #define W 1920
 #define H 1080
 #define VIDEO_MEMORY_SIZE 0x02000000
@@ -194,10 +200,12 @@ static void draw(Scene2D* s, int tab, int selected, bool queued) {
 
 int main(void) {
     setvbuf(stdout, NULL, _IONBF, 0);
+    write_status("RIDA_MUSIC_MAIN_ENTERED");
 
-    Scene2D* scene = new Scene2D(W, H, 4);
+    Scene2D scene(W, H, 4);
+    write_status("RIDA_MUSIC_SCENE_CREATED");
 
-    if (!scene->Init(VIDEO_MEMORY_SIZE, 2)) {
+    if (!scene.Init(VIDEO_MEMORY_SIZE, 2)) {
         printf("RIDA MUSIC: VIDEO INIT FAILED\n");
 
         for (;;) {
@@ -205,11 +213,12 @@ int main(void) {
         }
     }
 
-    scene->SetActiveFrameBuffer(0);
+    write_status("RIDA_MUSIC_VIDEO_INIT_OK");
 
     int pad = -1;
     int user = -1;
 
+    write_status("RIDA_MUSIC_BEFORE_PAD_INIT");
     const int padInitResult = scePadInit();
 
     // Même séquence d'initialisation que BLACKOUT, qui fonctionne sur PS4.
@@ -258,6 +267,7 @@ int main(void) {
 
     bool queued = false;
 
+    write_status("RIDA_MUSIC_ENTERING_MAIN_LOOP");
     for (;;) {
         uint32_t buttons = 0;
 
@@ -326,11 +336,12 @@ int main(void) {
             queued = false;
         }
 
-        draw(scene, tab, selected, queued);
+        scene.SetActiveFrameBuffer(frame % 2);
+        draw(&scene, tab, selected, queued);
 
-        scene->SubmitFlip(frame);
-        scene->FrameWait(frame);
-        scene->FrameBufferSwap();
+        scene.SubmitFlip(frame);
+        scene.FrameWait(frame);
+        if (frame == 0) write_status("RIDA_MUSIC_FIRST_FRAME_SUBMITTED");
 
         frame++;
 
