@@ -8,6 +8,9 @@
 #include <orbis/UserService.h>
 #include "graphics.h"
 #include <sstream>
+#include <wchar.h>
+#include "audius.h"
+#include <orbis/ImeDialog.h>
 
 std::stringstream debugLogStream;
 
@@ -116,6 +119,12 @@ static void rounded(Scene2D* s, int x, int y, int w, int h,
     rect(s,x,y+radius,w,h-2*radius,r,g,b);
 }
 
+static AudiusTrack audiusTracks[8];
+static int audiusCount = 0;
+static int audiusSelected = 0;
+static int audiusState = 0; // 0 idle, 1 results, 2 selected, -1 error
+static char audiusQuery[128] = "";
+
 static void draw(Scene2D* s, int tab, int selected, int notice) {
     const int whiteR=244, whiteG=247, whiteB=245;
     rect(s,0,0,W,H,12,15,14);
@@ -183,16 +192,45 @@ static void draw(Scene2D* s, int tab, int selected, int notice) {
         label(s,1202,655,"The streaming engine will be connected",2,164,181,170);
         label(s,1202,687,"to a provider that permits PS4 playback.",2,164,181,170);
     } else if(tab==1) {
-        rounded(s,338,205,1538,102,18,29,36,33);
-        rounded(s,366,232,50,50,15,45,57,51);
-        label(s,382,247,"Q",2,220,229,223);
-        label(s,438,240,"SEARCH THE CATALOGUE",2,whiteR,whiteG,whiteB);
-        label(s,438,272,"Search will become available when API access is configured.",1,157,176,164);
-        rounded(s,338,340,1538,250,18,29,36,33);
-        label(s,382,382,"SPOTIFY ACCESS NOT AVAILABLE",3,whiteR,whiteG,whiteB);
-        label(s,382,438,"Spotify now requires an active Premium subscription",2,174,190,180);
-        label(s,382,474,"for new developer-mode API integrations.",2,174,190,180);
-        label(s,382,532,"No fake search results are shown.",2,115,206,151);
+        rounded(s,338,196,1538,88,18,29,36,33);
+        rounded(s,362,215,48,48,14,45,57,51);
+        label(s,378,230,"Q",2,220,229,223);
+        label(s,430,216,"AUDIUS MUSIC CATALOGUE",2,whiteR,whiteG,whiteB);
+        label(s,430,246,"TRIANGLE: SEARCH   UP / DOWN: SELECT TRACK   CROSS: SELECT",1,157,176,164);
+        if (audiusQuery[0]) {
+            char queryText[128];
+            snprintf(queryText,sizeof(queryText),"QUERY: %s",audiusQuery);
+            label(s,1450,231,queryText,1,115,206,151);
+        }
+        if (audiusCount == 0) {
+            rounded(s,338,316,1538,270,18,29,36,33);
+            label(s,382,360,"SEARCH THE OPEN MUSIC CATALOGUE",3,whiteR,whiteG,whiteB);
+            label(s,382,422,"Press TRIANGLE to enter an artist, title or genre.",2,174,190,180);
+            label(s,382,464,"Audius public search uses the official HTTPS API.",2,174,190,180);
+            label(s,382,526,audiusState<0 ? audius_last_error() : "No search has been performed yet.",1,115,206,151);
+        } else {
+            label(s,338,320,"LIVE SEARCH RESULTS",2,whiteR,whiteG,whiteB);
+            for (int i=0; i<audiusCount && i<6; ++i) {
+                int y=366+i*82;
+                if (i==audiusSelected) rounded(s,338,y,1538,68,13,39,79,58);
+                else rounded(s,338,y,1538,68,13,25,31,29);
+                char titleLine[128];
+                char artistLine[96];
+                snprintf(titleLine,sizeof(titleLine),"%d. %s",i+1,audiusTracks[i].title);
+                snprintf(artistLine,sizeof(artistLine),"%s",audiusTracks[i].artist[0]?audiusTracks[i].artist:"UNKNOWN ARTIST");
+                label(s,372,y+12,titleLine,2,whiteR,whiteG,whiteB);
+                label(s,372,y+42,artistLine,1,157,176,164);
+                if (audiusTracks[i].duration>0) {
+                    char duration[24];
+                    snprintf(duration,sizeof(duration),"%d:%02d",audiusTracks[i].duration/60,audiusTracks[i].duration%60);
+                    label(s,1780,y+27,duration,1,157,176,164);
+                }
+            }
+            if (audiusState==2)
+                label(s,338,888,"TRACK SELECTED - AUDIO DECODER / STREAM PLAYBACK NOT CONNECTED YET",1,255,190,105);
+            else
+                label(s,338,888,"CATALOGUE LOADED - SELECT A TRACK OR PRESS TRIANGLE TO SEARCH AGAIN",1,115,206,151);
+        }
     } else if(tab==2) {
         rounded(s,338,205,1538,386,18,29,36,33);
         rounded(s,900,270,112,112,32,39,79,58);
@@ -231,6 +269,63 @@ static void draw(Scene2D* s, int tab, int selected, int notice) {
         label(s,1280,850,"MUSIC SOURCE NOT CONNECTED",2,220,233,224);
     }
 }
+static bool audius_open_search(int userId) {
+    if (sceSysmoduleLoadModule(ORBIS_SYSMODULE_IME_DIALOG) < 0) {
+        audiusState = -1;
+        return false;
+    }
+
+    wchar_t input[128] = {0};
+    for (size_t i=0; audiusQuery[i] && i<120; ++i)
+        input[i] = (wchar_t)(unsigned char)audiusQuery[i];
+
+    OrbisImeDialogSetting setting;
+    memset(&setting,0,sizeof(setting));
+    setting.userId = (uint32_t)userId;
+    setting.type = ORBIS_TYPE_DEFAULT;
+    setting.enterLabel = ORBIS_BUTTON_LABEL_SEARCH;
+    setting.maxTextLength = 120;
+    setting.inputTextBuffer = input;
+    setting.posx = 0.0f;
+    setting.posy = 0.0f;
+    setting.horizontalAlignment = ORBIS_H_CENTER;
+    setting.verticalAlignment = ORBIS_V_CENTER;
+    setting.placeholder = L"Artist, track or genre";
+    setting.title = L"Search Audius";
+
+    int rc = sceImeDialogInit(&setting,NULL);
+    if (rc < 0) {
+        audiusState = -1;
+        return false;
+    }
+
+    while (sceImeDialogGetStatus() == ORBIS_DIALOG_STATUS_RUNNING)
+        sceKernelUsleep(10000);
+
+    OrbisDialogResult result;
+    memset(&result,0,sizeof(result));
+    sceImeDialogGetResult(&result);
+    sceImeDialogTerm();
+
+    if (result.endstatus != ORBIS_DIALOG_OK)
+        return false;
+
+    size_t out=0;
+    while (input[out] && out+1<sizeof(audiusQuery)) {
+        wchar_t ch=input[out];
+        audiusQuery[out]=(ch>=32 && ch<127)?(char)ch:' ';
+        ++out;
+    }
+    audiusQuery[out]=0;
+    if (!audiusQuery[0]) return false;
+
+    audiusCount = audius_search(audiusQuery,audiusTracks,8);
+    audiusSelected = 0;
+    audiusState = audiusCount>0 ? 1 : -1;
+    write_status(audiusCount>0 ? "RIDA_AUDIUS_SEARCH_OK" : "RIDA_AUDIUS_SEARCH_FAILED");
+    return audiusCount>0;
+}
+
 int main(void) {
     setvbuf(stdout, NULL, _IONBF, 0);
     write_status("RIDA_MUSIC_MAIN_ENTERED");
