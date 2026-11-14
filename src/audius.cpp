@@ -1,8 +1,56 @@
 #include "audius.h"
 
+// OpenOrbis headers in the pinned CI toolchain mark several known APIs as
+// unprototyped void stubs. Rename those declarations while including headers,
+// then provide the real ABI signatures below.
+#define sceHttpCreateTemplate oo_stub_sceHttpCreateTemplate
+#define sceHttpSetConnectTimeOut oo_stub_sceHttpSetConnectTimeOut
+#define sceHttpSetSendTimeOut oo_stub_sceHttpSetSendTimeOut
+#define sceHttpSetResolveTimeOut oo_stub_sceHttpSetResolveTimeOut
+#define sceHttpCreateConnectionWithURL oo_stub_sceHttpCreateConnectionWithURL
+#define sceHttpDeleteTemplate oo_stub_sceHttpDeleteTemplate
+#define sceHttpCreateRequestWithURL oo_stub_sceHttpCreateRequestWithURL
+#define sceHttpSendRequest oo_stub_sceHttpSendRequest
+#define sceHttpGetStatusCode oo_stub_sceHttpGetStatusCode
+#define sceHttpReadData oo_stub_sceHttpReadData
+#define sceHttpDeleteRequest oo_stub_sceHttpDeleteRequest
+#define sceHttpDeleteConnection oo_stub_sceHttpDeleteConnection
+#define sceSslInit oo_stub_sceSslInit
+#define sceHttpInit oo_stub_sceHttpInit
 #include <orbis/Http.h>
 #include <orbis/Ssl.h>
 #include <orbis/Net.h>
+#undef sceHttpCreateTemplate
+#undef sceHttpSetConnectTimeOut
+#undef sceHttpSetSendTimeOut
+#undef sceHttpSetResolveTimeOut
+#undef sceHttpCreateConnectionWithURL
+#undef sceHttpDeleteTemplate
+#undef sceHttpCreateRequestWithURL
+#undef sceHttpSendRequest
+#undef sceHttpGetStatusCode
+#undef sceHttpReadData
+#undef sceHttpDeleteRequest
+#undef sceHttpDeleteConnection
+#undef sceSslInit
+#undef sceHttpInit
+
+extern "C" {
+int sceSslInit(size_t poolSize);
+int sceHttpInit(int memId, int sslId, size_t poolSize);
+int sceHttpCreateTemplate(int httpCtxId, const char* userAgent, int httpVer, int proxy);
+int sceHttpSetConnectTimeOut(int id, uint32_t usec);
+int sceHttpSetSendTimeOut(int id, uint32_t usec);
+int sceHttpSetResolveTimeOut(int id, uint32_t usec);
+int sceHttpCreateConnectionWithURL(int templateId, const char* url, bool keepalive);
+int sceHttpDeleteTemplate(int templateId);
+int sceHttpCreateRequestWithURL(int connId, int method, const char* url, uint64_t contentLength);
+int sceHttpSendRequest(int reqId, const void* postData, size_t size);
+int sceHttpGetStatusCode(int reqId, int* statusCode);
+int sceHttpReadData(int reqId, void* data, uint32_t size);
+int sceHttpDeleteRequest(int reqId);
+int sceHttpDeleteConnection(int connId);
+}
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -28,8 +76,7 @@ const char* audius_last_error() { return g_error; }
 bool audius_init() {
     if (g_ready) return true;
 
-    int rc = sceNetInit();
-    if (rc < 0) { set_error("NETWORK INIT FAILED"); return false; }
+    sceNetInit();
 
     // OpenOrbis exposes these initializers as no-argument SDK stubs.
     sceNetPoolCreate();
@@ -38,8 +85,8 @@ bool audius_init() {
     g_ssl = sceSslInit(AUDIUS_SSL_POOL);
     if (g_ssl < 0) { set_error("SSL INIT FAILED"); return false; }
 
-    sceHttpInit();
-    g_http = 1;
+    g_http = sceHttpInit(g_netPool, g_ssl, AUDIUS_HTTP_POOL);
+    if (g_http < 0) { set_error("HTTP INIT FAILED"); return false; }
 
     g_ready = true;
     set_error("READY");
