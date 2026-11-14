@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <orbis/libkernel.h>
 #include <orbis/Pad.h>
 #include <orbis/UserService.h>
 #include "graphics.h"
@@ -209,28 +210,34 @@ int main(void) {
     int pad = -1;
     int user = -1;
 
-    int padInitResult = scePadInit();
+    const int padInitResult = scePadInit();
 
-    if (padInitResult == 0) {
-        int userInitResult = sceUserServiceInitialize(NULL);
+    // Même séquence d'initialisation que BLACKOUT, qui fonctionne sur PS4.
+    // Le service utilisateur reçoit ses paramètres explicites.
+    OrbisUserServiceInitializeParams userParams = {
+        ORBIS_KERNEL_PRIO_FIFO_LOWEST
+    };
+    const int userInitResult = sceUserServiceInitialize(&userParams);
 
-        if (userInitResult == 0) {
-            int userResult = sceUserServiceGetInitialUser(&user);
+    // Toujours demander l'utilisateur actif, même si le service signale
+    // qu'il était déjà initialisé.
+    const int userResult = sceUserServiceGetInitialUser(&user);
 
-            if (userResult == 0 && user >= 0) {
-                pad = scePadOpen(user, 0, 0, NULL);
-            } else {
-                printf("RIDA MUSIC: USER NOT AVAILABLE (%d)\n",
-                       userResult);
-            }
-        } else {
-            printf("RIDA MUSIC: USER SERVICE INIT FAILED (%d)\n",
-                   userInitResult);
+    if (padInitResult == 0 && userResult == 0 && user >= 0) {
+        pad = scePadOpen(user, 0, 0, NULL);
+
+        // Récupérer le handle existant si scePadOpen indique qu'il est déjà ouvert.
+        if (pad < 0) {
+            pad = scePadGetHandle(
+                user,
+                ORBIS_PAD_PORT_TYPE_STANDARD,
+                0
+            );
         }
-    } else {
-        printf("RIDA MUSIC: PAD INIT FAILED (%d)\n",
-               padInitResult);
     }
+
+    printf("RIDA MUSIC: PAD INIT=%d USER INIT=%d USER RESULT=%d USER=%d PAD=%d\n",
+           padInitResult, userInitResult, userResult, user, pad);
 
     if (pad < 0) {
         printf("RIDA MUSIC: CONTROLLER NOT FOUND\n");
