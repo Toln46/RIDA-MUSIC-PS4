@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <cstdio>
 #include <errno.h>
 #include <new>
 #include <stdint.h>
@@ -8,6 +9,12 @@
 #include <string>
 
 #include "graphics.h"
+
+static void graphics_status(const char* message)
+{
+    FILE* log = std::fopen("/data/rida_music_diag.txt", "w");
+    if (log) { std::fprintf(log, "%s\\n", message); std::fclose(log); }
+}
 
 Scene2D::~Scene2D()
 {
@@ -36,14 +43,16 @@ Scene2D::Scene2D(int w, int h, int pixelDepth)
 
 bool Scene2D::Init(size_t memSize, int numFrameBuffers)
 {
+    graphics_status("RIDA_GRAPHICS_INIT_ENTERED");
     if (this->width <= 0 || this->height <= 0 || this->depth != 4 ||
         this->frameBufferSize == 0 || numFrameBuffers != 2 ||
         memSize < this->frameBufferSize * (size_t)numFrameBuffers)
         return false;
 
+    graphics_status("RIDA_BEFORE_VIDEO_OUT_OPEN");
     this->video = sceVideoOutOpen(ORBIS_VIDEO_USER_MAIN, ORBIS_VIDEO_OUT_BUS_MAIN, 0, 0);
-    if (this->video < 0)
-        return false;
+    if (this->video < 0) { graphics_status("RIDA_VIDEO_OUT_OPEN_FAILED"); return false; }
+    graphics_status("RIDA_VIDEO_OUT_OPEN_OK");
 
 #ifdef GRAPHICS_USES_FONT
     int rc = sceSysmoduleLoadModule(ORBIS_SYSMODULE_FREETYPE_OL);
@@ -55,18 +64,24 @@ bool Scene2D::Init(size_t memSize, int numFrameBuffers)
         return false;
 #endif
 
-    if (!initFlipQueue())
-        return false;
+    graphics_status("RIDA_BEFORE_FLIP_QUEUE");
+    if (!initFlipQueue()) { graphics_status("RIDA_FLIP_QUEUE_FAILED"); return false; }
+    graphics_status("RIDA_FLIP_QUEUE_OK");
 
-    if (!allocateVideoMem(memSize, 0x200000))
-        return false;
+    graphics_status("RIDA_BEFORE_VIDEO_MEMORY");
+    if (!allocateVideoMem(memSize, 0x200000)) { graphics_status("RIDA_VIDEO_MEMORY_FAILED"); return false; }
+    graphics_status("RIDA_VIDEO_MEMORY_OK");
 
+    graphics_status("RIDA_BEFORE_FRAMEBUFFERS");
     if (!allocateFrameBuffers(numFrameBuffers)) {
+        graphics_status("RIDA_FRAMEBUFFERS_FAILED");
         deallocateVideoMem();
         return false;
     }
 
+    graphics_status("RIDA_FRAMEBUFFERS_OK");
     sceVideoOutSetFlipRate(this->video, 0);
+    graphics_status("RIDA_GRAPHICS_INIT_COMPLETE");
     return true;
 }
 
