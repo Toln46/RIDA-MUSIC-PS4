@@ -5,7 +5,9 @@
 #include <orbis/Pad.h>
 #include <orbis/UserService.h>
 #include "graphics.h"
+#include <sstream>
 
+std::stringstream debugLogStream;
 #define W 1920
 #define H 1080
 #define VIDEO_MEMORY_SIZE 0x02000000
