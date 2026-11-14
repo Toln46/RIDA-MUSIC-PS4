@@ -133,9 +133,13 @@ static void draw(Scene2D* s, int tab, int selected, int notice) {
         if(tab==i) {
             rounded(s,20,y,246,52,12,34,69,51);
             rounded(s,20,y+10,4,32,2,29,185,84);
+        } else if(selected==i) {
+            rounded(s,20,y,246,52,12,31,40,36);
         }
         label(s,48,y+17,nav[i],2,
-              tab==i?92:218,tab==i?229:225,tab==i?153:220);
+              tab==i?92:(selected==i?235:218),
+              tab==i?229:(selected==i?239:225),
+              tab==i?153:(selected==i?236:220));
     }
 
     rect(s,36,462,214,1,52,63,57);
@@ -356,7 +360,8 @@ int main(void) {
         }
 
         if (pressed & ORBIS_PAD_BUTTON_CROSS) {
-            notice = 1;
+            tab = selected;
+            notice = 0;
         }
 
         if (pressed & ORBIS_PAD_BUTTON_CIRCLE) {
